@@ -52,6 +52,8 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  const mealItems = meal?.items || [];
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -99,14 +101,14 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
   const triggerFileInput = () => fileInputRef.current?.click();
 
   const mealTotals = useMemo(() => {
-    return meal.items.reduce((acc, item) => {
+    return mealItems.reduce((acc, item) => {
         acc.calories += item.analysis?.calories || 0;
         acc.protein += item.analysis?.protein || 0;
         acc.carbs += item.analysis?.carbs || 0;
         acc.fat += item.analysis?.fat || 0;
         return acc;
     }, {calories: 0, protein: 0, carbs: 0, fat: 0});
-  }, [meal.items]);
+  }, [mealItems]);
 
   return (
     <Card>
@@ -116,7 +118,7 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
                 <div className="p-2 rounded-full bg-primary/10 text-primary">{mealIcons[mealType]}</div>
                 <div>
                   <CardTitle>{title}</CardTitle>
-                  {meal.items.length > 0 && <CardDescription>{mealTotals.calories} kcal total</CardDescription>}
+                  {mealItems.length > 0 && <CardDescription>{mealTotals.calories} kcal total</CardDescription>}
                 </div>
             </div>
             {!isLoading && (
@@ -134,9 +136,9 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
                 <Skeleton className="h-4 w-1/2" />
             </div>
         )}
-        {!isLoading && meal.items.length > 0 && (
+        {!isLoading && mealItems.length > 0 && (
           <Accordion type="single" collapsible className="w-full">
-            {meal.items.map((item) => (
+            {mealItems.map((item) => (
               <AccordionItem value={item.id} key={item.id}>
                 <AccordionTrigger>
                   <div className="flex justify-between w-full pr-4">
@@ -170,7 +172,7 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
             ))}
           </Accordion>
         )}
-        {!isLoading && meal.items.length === 0 && (
+        {!isLoading && mealItems.length === 0 && (
           <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
             <p>Click "Add Food" to snap a photo of your meal.</p>
           </div>
