@@ -34,8 +34,8 @@ export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem })
           <TabsTrigger value="today" className="gap-2"><Target className="w-4 h-4" />Today's Log</TabsTrigger>
           <TabsTrigger value="plan" className="gap-2"><BookOpen className="w-4 h-4" />My Plan</TabsTrigger>
         </TabsList>
-        <TabsContent value="today" className="flex-grow mt-0 min-h-0">
-          <ScrollArea className="h-full">
+        <TabsContent value="today" className="flex-grow mt-0 relative">
+          <ScrollArea className="absolute inset-0">
             <div className='space-y-4 p-4 pt-0'>
               <FoodLogCard mealType="breakfast" title="Breakfast" meal={log.meals.breakfast} onLogItem={onLogItem} plan={plan} />
               <FoodLogCard mealType="lunch" title="Lunch" meal={log.meals.lunch} onLogItem={onLogItem} plan={plan} />
@@ -43,9 +43,11 @@ export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem })
             </div>
           </ScrollArea>
         </TabsContent>
-        <TabsContent value="plan" className="flex-grow mt-0 min-h-0">
-          <ScrollArea className="h-full p-4">
-            <PlanView plan={plan} />
+        <TabsContent value="plan" className="flex-grow mt-0 relative">
+          <ScrollArea className="absolute inset-0">
+            <div className="p-4 pt-0">
+              <PlanView plan={plan} />
+            </div>
           </ScrollArea>
         </TabsContent>
       </Tabs>

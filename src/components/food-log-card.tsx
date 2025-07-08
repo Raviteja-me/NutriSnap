@@ -26,16 +26,30 @@ const mealIcons = {
 };
 
 const parseNutritionalInfo = (info: string): Omit<FoodAnalysis, 'ingredients' | 'nutritionalInformation' | 'dishName'> => {
-  const calories = info.match(/(\d+)\s*calories/i);
-  const protein = info.match(/(\d+)\s*g protein/i);
-  const carbs = info.match(/(\d+)\s*g carbs/i);
-  const fat = info.match(/(\d+)\s*g fat/i);
-  return {
-    calories: calories ? parseInt(calories[1], 10) : undefined,
-    protein: protein ? parseInt(protein[1], 10) : undefined,
-    carbs: carbs ? parseInt(carbs[1], 10) : undefined,
-    fat: fat ? parseInt(fat[1], 10) : undefined,
+  const getAverage = (match: RegExpMatchArray | null): number | undefined => {
+    if (!match || !match[1]) return undefined;
+    
+    // Handles ranges like "400-600" or "400 - 600" using different dash characters
+    const parts = match[1].split(/[-–—]/).map(p => parseInt(p.trim(), 10));
+    
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return Math.round((parts[0] + parts[1]) / 2);
+    }
+    
+    // Handles single numbers
+    if (parts.length === 1 && !isNaN(parts[0])) {
+      return parts[0];
+    }
+
+    return undefined;
   };
+
+  const calories = getAverage(info.match(/calories:?\s*([\d\s-–—]+)/i));
+  const protein = getAverage(info.match(/protein:?\s*([\d\s-–—]+)g/i));
+  const carbs = getAverage(info.match(/carbohydrates:?\s*([\d\s-–—]+)g/i));
+  const fat = getAverage(info.match(/fat:?\s*([\d\s-–—]+)g/i));
+  
+  return { calories, protein, carbs, fat };
 };
 
 const NutritionBar: FC<{value?: number, goal: number, label: string, unit: string, colorClass: string}> = ({value = 0, goal, label, unit, colorClass}) => (
@@ -44,7 +58,7 @@ const NutritionBar: FC<{value?: number, goal: number, label: string, unit: strin
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{value}{unit} / {goal}{unit}</p>
     </div>
-    <Progress value={(value / goal) * 100} className={colorClass} />
+    <Progress value={goal > 0 ? (value / goal) * 100 : 0} className={colorClass} />
   </div>
 );
 
