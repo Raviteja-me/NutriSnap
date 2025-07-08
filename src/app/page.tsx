@@ -5,7 +5,7 @@ import { SplashScreen } from '@/components/splash-screen';
 import { ProfileSetup } from '@/components/profile-setup';
 import { Dashboard } from '@/components/dashboard';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import type { UserProfile, DietPlan, DailyLog } from '@/lib/types';
+import type { UserProfile, DietPlan, DailyLog, LoggedItem } from '@/lib/types';
 import { generateDietPlan } from '@/lib/plan-generator';
 
 type AppStatus = 'loading' | 'needs_profile' | 'ready';
@@ -32,18 +32,24 @@ const Home: FC = () => {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  const todayLog = log[today] || { date: today, meals: {} };
+  const todayLog = log[today] || { date: today, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
 
-  const handleLogMeal = (meal: any) => {
+  const handleLogItem = (mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => {
+    const currentLog = log[today] || { date: today, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
+    
+    const updatedMeals = {
+        ...currentLog.meals,
+        [mealType]: {
+            items: [...(currentLog.meals[mealType]?.items || []), item],
+        }
+    };
+
     const updatedLog = {
-      ...log,
-      [today]: {
-        ...todayLog,
-        meals: {
-          ...todayLog.meals,
-          [meal.id]: meal,
-        },
-      },
+        ...log,
+        [today]: {
+            ...currentLog,
+            meals: updatedMeals
+        }
     };
     setLog(updatedLog);
   };
@@ -56,7 +62,7 @@ const Home: FC = () => {
         return <ProfileSetup onSave={handleProfileSave} />;
       case 'ready':
         if (profile && plan) {
-          return <Dashboard profile={profile} plan={plan} log={todayLog} onLogMeal={handleLogMeal} />;
+          return <Dashboard profile={profile} plan={plan} log={todayLog} onLogItem={handleLogItem} />;
         }
         // If profile/plan is missing, reset
         setStatus('needs_profile');

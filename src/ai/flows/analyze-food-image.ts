@@ -21,6 +21,7 @@ const AnalyzeFoodImageInputSchema = z.object({
 export type AnalyzeFoodImageInput = z.infer<typeof AnalyzeFoodImageInputSchema>;
 
 const AnalyzeFoodImageOutputSchema = z.object({
+  dishName: z.string().describe('A short, descriptive name for the dish in the image.'),
   ingredients: z
     .array(z.string())
     .describe('A list of identified ingredients in the meal.'),
@@ -38,7 +39,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeFoodImagePrompt',
   input: {schema: AnalyzeFoodImageInputSchema},
   output: {schema: AnalyzeFoodImageOutputSchema},
-  prompt: `You are a nutritional expert. Analyze the food in the image and identify the ingredients and estimate the nutritional information.
+  prompt: `You are a nutritional expert. Analyze the food in the image. Identify the ingredients, estimate the nutritional information, and provide a short, descriptive name for the dish.
 
 Use the following as the primary source of information about the food.
 

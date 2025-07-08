@@ -8,6 +8,7 @@ export interface UserProfile {
 }
 
 export interface FoodAnalysis {
+  dishName: string;
   ingredients: string[];
   nutritionalInformation: string;
   calories?: number;
@@ -16,20 +17,24 @@ export interface FoodAnalysis {
   fat?: number;
 }
 
-export interface Meal {
-  id: 'breakfast' | 'lunch' | 'dinner';
+export interface LoggedItem {
+  id: string; // a unique id, e.g. timestamp
   name: string;
   image?: string;
   analysis?: FoodAnalysis;
   loggedAt: string;
 }
 
+export interface Meal {
+  items: LoggedItem[];
+}
+
 export interface DailyLog {
   date: string;
   meals: {
-    breakfast?: Meal;
-    lunch?: Meal;
-    dinner?: Meal;
+    breakfast: Meal;
+    lunch: Meal;
+    dinner: Meal;
   };
 }
 
