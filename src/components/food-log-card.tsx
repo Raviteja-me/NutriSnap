@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, type FC, useMemo } from 'react';
-import { Camera, Sunrise, Sun, Moon, PlusCircle } from 'lucide-react';
+import { Camera, Sunrise, Sun, Moon, PlusCircle, Edit } from 'lucide-react';
 import { analyzeFoodImage } from '@/ai/flows/analyze-food-image';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -10,6 +10,8 @@ import { Skeleton } from './ui/skeleton';
 import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Progress } from './ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
+import { Input } from './ui/input';
 
 interface FoodLogCardProps {
   mealType: 'breakfast' | 'lunch' | 'dinner';
@@ -29,14 +31,12 @@ const parseNutritionalInfo = (info: string): Omit<FoodAnalysis, 'ingredients' | 
   const getAverage = (match: RegExpMatchArray | null): number | undefined => {
     if (!match || !match[1]) return undefined;
     
-    // Handles ranges like "400-600" or "400 - 600" using different dash characters
     const parts = match[1].split(/[-–—]/).map(p => parseInt(p.trim(), 10));
     
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
       return Math.round((parts[0] + parts[1]) / 2);
     }
     
-    // Handles single numbers
     if (parts.length === 1 && !isNaN(parts[0])) {
       return parts[0];
     }
@@ -46,7 +46,7 @@ const parseNutritionalInfo = (info: string): Omit<FoodAnalysis, 'ingredients' | 
 
   const calories = getAverage(info.match(/calories:?\s*([\d\s-–—]+)/i));
   const protein = getAverage(info.match(/protein:?\s*([\d\s-–—]+)g/i));
-  const carbs = getAverage(info.match(/carbohydrates:?\s*([\d\s-–—]+)g/i));
+  const carbs = getAverage(info.match(/(?:carbohydrates|carbs):?\s*([\d\s-–—]+)g/i));
   const fat = getAverage(info.match(/fat:?\s*([\d\s-–—]+)g/i));
   
   return { calories, protein, carbs, fat };
@@ -58,22 +58,24 @@ const NutritionBar: FC<{value?: number, goal: number, label: string, unit: strin
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{value}{unit} / {goal}{unit}</p>
     </div>
-    <Progress value={goal > 0 ? (value / goal) * 100 : 0} className={colorClass} />
+    <Progress value={goal > 0 ? (value / goal) * 100 : 0} className={colorClass + " h-2"} />
   </div>
 );
 
-export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLogItem, plan }) => {
+const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: FoodLogCardProps['onLogItem']}> = ({mealType, onLogItem}) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  
-  const mealItems = meal?.items || [];
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
+    setIsOpen(false);
+    
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
@@ -93,36 +95,90 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
 
       } catch (error) {
         console.error('Error analyzing food image:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Analysis Failed',
-          description: 'Could not analyze the food image. Please try again.',
-        });
+        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the food image.' });
       } finally {
         setIsLoading(false);
       }
     };
     reader.onerror = () => {
         setIsLoading(false);
-        toast({
-            variant: 'destructive',
-            title: 'File Error',
-            description: 'Could not read the selected file.',
-        });
+        toast({ variant: 'destructive', title: 'File Error', description: 'Could not read the selected file.' });
+    }
+  };
+
+  const handleTextSubmit = async () => {
+    if(!textInput) return;
+    setIsLoading(true);
+    setIsOpen(false);
+    
+    try {
+        const result = await analyzeFoodImage({ photoDataUri: `data:text/plain;base64,${btoa(`Analyze the nutritional content of: ${textInput}`)}` });
+        const parsedNutrition = parseNutritionalInfo(result.nutritionalInformation);
+        const newItem: LoggedItem = {
+          id: Date.now().toString(),
+          name: result.dishName,
+          analysis: { ...result, ...parsedNutrition },
+          loggedAt: new Date().toISOString(),
+        };
+        onLogItem(mealType, newItem);
+        setTextInput('');
+    } catch(error) {
+        console.error('Error analyzing text input:', error);
+        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the typed entry.' });
+    } finally {
+        setIsLoading(false);
     }
   };
 
   const triggerFileInput = () => fileInputRef.current?.click();
 
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" disabled={isLoading}>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Food
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Food Item</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+            <Button onClick={triggerFileInput} className="w-full" variant="outline"><Camera className="mr-2 h-4 w-4"/>Snap a Photo</Button>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
+            </div>
+            <div className='space-y-2'>
+              <Input 
+                placeholder="e.g., 'A bowl of oatmeal with berries'" 
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()}
+              />
+              <Button onClick={handleTextSubmit} className="w-full"><Edit className="mr-2 h-4 w-4" />Log Manually</Button>
+            </div>
+        </div>
+        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLogItem, plan }) => {
+  const [isLoading, setIsLoading] = useState(false);
+    
+  const mealItems = meal?.items || [];
+
   const mealTotals = useMemo(() => {
-    return mealItems.reduce((acc, item) => {
+    return (meal?.items || []).reduce((acc, item) => {
         acc.calories += item.analysis?.calories || 0;
         acc.protein += item.analysis?.protein || 0;
         acc.carbs += item.analysis?.carbs || 0;
         acc.fat += item.analysis?.fat || 0;
         return acc;
     }, {calories: 0, protein: 0, carbs: 0, fat: 0});
-  }, [mealItems]);
+  }, [meal]);
 
   return (
     <Card>
@@ -135,11 +191,7 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
                   {mealItems.length > 0 && <CardDescription>{mealTotals.calories} kcal total</CardDescription>}
                 </div>
             </div>
-            {!isLoading && (
-              <Button variant="ghost" size="sm" onClick={triggerFileInput}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Food
-              </Button>
-            )}
+            <AddFoodDialog mealType={mealType} onLogItem={onLogItem} />
         </div>
       </CardHeader>
       <CardContent>
@@ -163,14 +215,14 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
                 <AccordionContent>
                   <div className="grid md:grid-cols-2 gap-6 items-start pt-2">
                     {item.image && <img data-ai-hint="meal food" src={item.image} alt={item.name} className="rounded-lg w-full h-auto object-cover" />}
-                    <div className="space-y-4">
+                    <div className={`space-y-4 ${!item.image && "md:col-span-2"}`}>
                       <div>
                         <h4 className="font-semibold text-sm mb-2">Estimated Nutrition</h4>
                         <div className='space-y-3'>
-                          <NutritionBar value={item.analysis?.calories} goal={plan.dailyCalorieGoal} label="Calories" unit="kcal" colorClass="[&>*]:bg-chart-1" />
-                          <NutritionBar value={item.analysis?.carbs} goal={plan.dailyCarbsGoal} label="Carbs" unit="g" colorClass="[&>*]:bg-chart-2" />
-                          <NutritionBar value={item.analysis?.protein} goal={plan.dailyProteinGoal} label="Protein" unit="g" colorClass="[&>*]:bg-chart-3" />
-                          <NutritionBar value={item.analysis?.fat} goal={plan.dailyFatGoal} label="Fat" unit="g" colorClass="[&>*]:bg-chart-4" />
+                          <NutritionBar value={item.analysis?.calories} goal={plan.dailyCalorieGoal/3} label="Calories" unit="kcal" colorClass="[&>*]:bg-chart-1" />
+                          <NutritionBar value={item.analysis?.carbs} goal={plan.dailyCarbsGoal/3} label="Carbs" unit="g" colorClass="[&>*]:bg-chart-2" />
+                          <NutritionBar value={item.analysis?.protein} goal={plan.dailyProteinGoal/3} label="Protein" unit="g" colorClass="[&>*]:bg-chart-3" />
+                          <NutritionBar value={item.analysis?.fat} goal={plan.dailyFatGoal/3} label="Fat" unit="g" colorClass="[&>*]:bg-chart-4" />
                         </div>
                       </div>
                       <div>
@@ -188,10 +240,9 @@ export const FoodLogCard: FC<FoodLogCardProps> = ({ mealType, title, meal, onLog
         )}
         {!isLoading && mealItems.length === 0 && (
           <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-            <p>Click "Add Food" to snap a photo of your meal.</p>
+            <p>Click "Add Food" to snap a photo or type in your meal.</p>
           </div>
         )}
-        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
       </CardContent>
     </Card>
   );

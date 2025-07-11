@@ -45,7 +45,7 @@ export const ProfileSetup: FC<ProfileSetupProps> = ({ onSave }) => {
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-background p-4 animate-fade-in overflow-y-auto">
-      <div className="w-full text-center mb-6">
+       <div className="w-full text-center mb-6 pt-8">
         <Logo />
       </div>
       <Card className="w-full">
@@ -122,6 +122,7 @@ export const ProfileSetup: FC<ProfileSetupProps> = ({ onSave }) => {
           </Form>
         </CardContent>
       </Card>
+      <div className='pb-8'></div>
     </div>
   );
 };

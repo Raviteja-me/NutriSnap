@@ -1,9 +1,10 @@
 'use client';
-import type { FC } from 'react';
-import { User, Target, BookOpen, LogOut } from 'lucide-react';
+import { useState, useMemo, type FC } from 'react';
+import { User, Target, BookOpen, LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { format, addDays, subDays, isToday } from 'date-fns';
 import type { UserProfile, DietPlan, DailyLog, LoggedItem } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FoodLogCard } from './food-log-card';
+import { TodayView } from './today-view';
 import { PlanView } from './plan-view';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from './ui/button';
@@ -11,12 +12,21 @@ import { Button } from './ui/button';
 interface DashboardProps {
   profile: UserProfile;
   plan: DietPlan;
-  log: DailyLog;
-  onLogItem: (mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => void;
+  log: Record<string, DailyLog>;
+  onLogItem: (date: string, mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => void;
   onLogout: () => void;
 }
 
 export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem, onLogout }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const dateKey = format(selectedDate, 'yyyy-MM-dd');
+  const currentLog = log[dateKey] || { date: dateKey, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
+
+  const handleDateChange = (days: number) => {
+    setSelectedDate(currentDate => addDays(currentDate, days));
+  };
+  
   return (
     <div className="w-full h-full flex flex-col bg-card animate-fade-in">
       <header className="p-4 border-b flex-shrink-0">
@@ -42,20 +52,30 @@ export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem, o
       </header>
       
       <Tabs defaultValue="today" className="flex-grow flex flex-col min-h-0">
-        <TabsList className="m-4 flex-shrink-0">
+        <TabsList className="m-4 mx-auto flex-shrink-0">
           <TabsTrigger value="today" className="gap-2"><Target className="w-4 h-4" />Today's Log</TabsTrigger>
           <TabsTrigger value="plan" className="gap-2"><BookOpen className="w-4 h-4" />My Plan</TabsTrigger>
         </TabsList>
         <TabsContent value="today" className="flex-grow mt-0 overflow-y-auto">
+            <div className="flex items-center justify-between px-4 pb-2">
+                <Button variant="outline" size="icon" onClick={() => handleDateChange(-1)}>
+                    <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="text-center font-semibold">
+                    <p>{format(selectedDate, "EEEE, MMMM d")}</p>
+                    {isToday(selectedDate) && <p className="text-xs font-normal text-primary">Today</p>}
+                </div>
+                <Button variant="outline" size="icon" onClick={() => handleDateChange(1)} disabled={isToday(selectedDate)}>
+                    <ChevronRight className="w-4 h-4" />
+                </Button>
+            </div>
             <div className='space-y-4 p-4 pt-0'>
-              <FoodLogCard mealType="breakfast" title="Breakfast" meal={log.meals.breakfast} onLogItem={onLogItem} plan={plan} />
-              <FoodLogCard mealType="lunch" title="Lunch" meal={log.meals.lunch} onLogItem={onLogItem} plan={plan} />
-              <FoodLogCard mealType="dinner" title="Dinner" meal={log.meals.dinner} onLogItem={onLogItem} plan={plan} />
+              <TodayView log={currentLog} plan={plan} onLogItem={(...args) => onLogItem(dateKey, ...args)} />
             </div>
         </TabsContent>
         <TabsContent value="plan" className="flex-grow mt-0 overflow-y-auto">
             <div className="p-4 pt-0">
-              <PlanView plan={plan} />
+              <PlanView plan={plan} profile={profile}/>
             </div>
         </TabsContent>
       </Tabs>

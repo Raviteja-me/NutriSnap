@@ -19,12 +19,22 @@ const Home: FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // This effect ensures that if the user has a profile but no plan (e.g., from an old version),
+    // we guide them back to the start.
     const timer = setTimeout(() => {
-      setStatus(profile ? 'ready' : 'needs_profile');
+      if (profile && plan) {
+        setStatus('ready');
+      } else if (profile && !plan) {
+        // If profile exists but plan doesn't, force a re-plan.
+        handleProfileSave(profile);
+      }
+      else {
+        setStatus('needs_profile');
+      }
     }, 1500); // Splash screen duration
 
     return () => clearTimeout(timer);
-  }, [profile]);
+  }, [profile, plan]);
 
   const handleProfileSave = async (data: UserProfile) => {
     setProfile(data);
@@ -53,23 +63,20 @@ const Home: FC = () => {
     setStatus('needs_profile');
   };
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayLog = log[today] || { date: today, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
-
-  const handleLogItem = (mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => {
-    const currentLog = log[today] || { date: today, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
+  const handleLogItem = (date: string, mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => {
+    const dayLog = log[date] || { date, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
     
     const updatedMeals = {
-        ...currentLog.meals,
+        ...dayLog.meals,
         [mealType]: {
-            items: [...(currentLog.meals[mealType]?.items || []), item],
+            items: [...(dayLog.meals[mealType]?.items || []), item],
         }
     };
 
     const updatedLog = {
         ...log,
-        [today]: {
-            ...currentLog,
+        [date]: {
+            ...dayLog,
             meals: updatedMeals
         }
     };
@@ -85,9 +92,10 @@ const Home: FC = () => {
         return <ProfileSetup onSave={handleProfileSave} />;
       case 'ready':
         if (profile && plan) {
-          return <Dashboard profile={profile} plan={plan} log={todayLog} onLogItem={handleLogItem} onLogout={handleLogout} />;
+          return <Dashboard profile={profile} plan={plan} log={log} onLogItem={handleLogItem} onLogout={handleLogout} />;
         }
         // If profile/plan is missing, reset
+        setProfile(null);
         setStatus('needs_profile');
         return <ProfileSetup onSave={handleProfileSave} />;
       default:

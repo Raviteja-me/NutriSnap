@@ -32,12 +32,27 @@ export interface Meal {
 }
 
 export interface DailyLog {
-  date: string;
+  date: string; // YYYY-MM-DD
   meals: {
     breakfast: Meal;
     lunch: Meal;
     dinner: Meal;
   };
+}
+
+export interface YogaPlan {
+    yogaPlan: {
+        day: string;
+        focus: string;
+        asanas: {
+            name: string;
+            duration: string;
+        }[];
+        meditation: {
+            type: string;
+            duration: string;
+        }
+    }[];
 }
 
 export interface DietPlan {
@@ -53,4 +68,5 @@ export interface DietPlan {
       dinner: string;
     };
   }[];
+  yogaPlan?: YogaPlan;
 }
