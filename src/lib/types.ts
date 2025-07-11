@@ -66,7 +66,5 @@ export interface DietPlan {
       dinner: string;
     };
   }[];
-  yogaPlan: {
-    yogaPlan: YogaPlan[];
-  };
+  yogaPlan: YogaPlan[] | null;
 }

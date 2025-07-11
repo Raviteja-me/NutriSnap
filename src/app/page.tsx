@@ -6,7 +6,7 @@ import { ProfileSetup } from '@/components/profile-setup';
 import { Dashboard } from '@/components/dashboard';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { UserProfile, DietPlan, DailyLog, LoggedItem } from '@/lib/types';
-import { generateDietPlan } from '@/lib/plan-generator';
+import { generateInitialDietPlan, addYogaPlanToDietPlan } from '@/lib/plan-generator';
 import { useToast } from '@/hooks/use-toast';
 
 type AppStatus = 'loading' | 'needs_profile' | 'generating_plan' | 'ready';
@@ -19,30 +19,40 @@ const Home: FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect ensures that if the user has a profile but no plan (e.g., from an old version),
-    // we guide them back to the start.
     const timer = setTimeout(() => {
       if (profile && plan) {
         setStatus('ready');
-      } else if (profile && !plan) {
-        // If profile exists but plan doesn't, force a re-plan.
-        handleProfileSave(profile);
-      }
-      else {
+        // Check if yoga plan needs to be generated
+        if (profile && plan && !plan.yogaPlan) {
+          addYogaPlanToDietPlan(profile, plan).then(newPlan => {
+            setPlan(newPlan);
+          }).catch(error => {
+            console.error("Failed to add yoga plan:", error);
+            // Non-critical error, no need to toast, but we can log it.
+          });
+        }
+      } else {
         setStatus('needs_profile');
       }
     }, 1500); // Splash screen duration
 
     return () => clearTimeout(timer);
-  }, [profile, plan]);
+  }, []); // Run only once on initial load
+
 
   const handleProfileSave = async (data: UserProfile) => {
     setProfile(data);
     setStatus('generating_plan');
     try {
-      const newPlan = await generateDietPlan(data);
-      setPlan(newPlan);
-      setStatus('ready');
+      // Step 1: Generate the initial plan with meals and nutrition goals.
+      const initialPlan = await generateInitialDietPlan(data);
+      setPlan(initialPlan);
+      setStatus('ready'); // Go to dashboard immediately
+
+      // Step 2: Generate and add the yoga plan in the background.
+      const finalPlan = await addYogaPlanToDietPlan(data, initialPlan);
+      setPlan(finalPlan); // Update the plan with yoga data.
+
     } catch (error) {
         console.error("Failed to generate diet plan:", error);
         toast({
@@ -52,6 +62,7 @@ const Home: FC = () => {
         });
         // Reset to profile setup if plan generation fails
         setProfile(null);
+        setPlan(null);
         setStatus('needs_profile');
     }
   };
@@ -96,6 +107,7 @@ const Home: FC = () => {
         }
         // If profile/plan is missing, reset
         setProfile(null);
+        setPlan(null);
         setStatus('needs_profile');
         return <ProfileSetup onSave={handleProfileSave} />;
       default:

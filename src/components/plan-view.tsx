@@ -22,9 +22,9 @@ const StatCard: FC<{icon: React.ReactNode, value: string, label: string, color: 
     </div>
 )
 
-const YogaPlanView: FC<{plan: {yogaPlan: YogaPlan[]}}> = ({plan}) => (
+const YogaPlanView: FC<{plan: YogaPlan[]}> = ({plan}) => (
     <Accordion type="single" collapsible defaultValue="Monday">
-        {plan.yogaPlan.map((dayPlan) => (
+        {plan.map((dayPlan) => (
             <AccordionItem value={dayPlan.day} key={dayPlan.day}>
             <AccordionTrigger>
                 <div className='flex items-center gap-2'>
@@ -105,7 +105,7 @@ export const PlanView: FC<PlanViewProps> = ({ plan, profile }) => {
                     <MealPlanView plan={plan} />
                 </TabsContent>
                 <TabsContent value="yoga">
-                    {plan.yogaPlan && plan.yogaPlan.yogaPlan ? (
+                    {plan.yogaPlan ? (
                         <YogaPlanView plan={plan.yogaPlan} />
                     ) : (
                         <div className="space-y-4">

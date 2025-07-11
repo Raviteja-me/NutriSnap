@@ -24,7 +24,11 @@ const getYogaGoal = (goal: UserProfile['goal']): string => {
     }
 }
 
-export const generateDietPlan = async (profile: UserProfile): Promise<DietPlan> => {
+/**
+ * Generates the initial diet plan containing nutritional goals and a weekly meal plan.
+ * The yoga plan is intentionally omitted for faster initial load.
+ */
+export const generateInitialDietPlan = async (profile: UserProfile): Promise<DietPlan> => {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr);
 
@@ -46,21 +50,13 @@ export const generateDietPlan = async (profile: UserProfile): Promise<DietPlan> 
   const dailyProteinGoal = Math.round((dailyCalorieGoal * 0.30) / 4);
   const dailyFatGoal = Math.round((dailyCalorieGoal * 0.25) / 9);
 
-  // Call the AI flows to generate plans
-  // We can run these in parallel to speed things up
-  const [mealPlanResponse, yogaPlanResponse] = await Promise.all([
-    generateWeeklyPlan({
-      goal: profile.goal,
-      country: profile.country,
-      state: profile.state,
-      disorders: profile.disorders || 'None',
-      dailyCalorieGoal,
-    }),
-    generateYogaPlan({
-      goal: getYogaGoal(profile.goal),
-      experienceLevel: 'beginner', // Assuming beginner for now
-    })
-  ]);
+  const mealPlanResponse = await generateWeeklyPlan({
+    goal: profile.goal,
+    country: profile.country,
+    state: profile.state,
+    disorders: profile.disorders || 'None',
+    dailyCalorieGoal,
+  });
 
   return {
     dailyCalorieGoal,
@@ -68,6 +64,22 @@ export const generateDietPlan = async (profile: UserProfile): Promise<DietPlan> 
     dailyCarbsGoal,
     dailyFatGoal,
     weeklyPlan: mealPlanResponse.weeklyPlan,
-    yogaPlan: yogaPlanResponse.yogaPlan,
+    yogaPlan: null, // Explicitly set to null initially
   };
+};
+
+/**
+ * Generates a yoga plan and adds it to an existing diet plan.
+ * This can be called in the background after the initial plan is displayed.
+ */
+export const addYogaPlanToDietPlan = async (profile: UserProfile, existingPlan: DietPlan): Promise<DietPlan> => {
+    const yogaPlanResponse = await generateYogaPlan({
+      goal: getYogaGoal(profile.goal),
+      experienceLevel: 'beginner', // Assuming beginner for now
+    });
+
+    return {
+        ...existingPlan,
+        yogaPlan: yogaPlanResponse.yogaPlan,
+    };
 };
