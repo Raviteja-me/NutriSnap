@@ -3,6 +3,8 @@ export interface UserProfile {
   age: number;
   height: number;
   weight: number;
+  country: string;
+  state: string;
   disorders: string;
   goal: 'lose' | 'maintain' | 'gain';
 }

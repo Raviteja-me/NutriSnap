@@ -1,4 +1,5 @@
 import type { UserProfile, DietPlan } from './types';
+import { generateWeeklyPlan } from '@/ai/flows/generate-weekly-plan';
 
 // Basic Metabolic Rate (BMR) - Mifflin-St Jeor Equation
 const calculateBMR = (profile: UserProfile): number => {
@@ -12,7 +13,7 @@ const calculateTDEE = (bmr: number): number => {
   return bmr * 1.375;
 };
 
-export const generateDietPlan = (profile: UserProfile): DietPlan => {
+export const generateDietPlan = async (profile: UserProfile): Promise<DietPlan> => {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr);
 
@@ -34,22 +35,20 @@ export const generateDietPlan = (profile: UserProfile): DietPlan => {
   const dailyProteinGoal = Math.round((dailyCalorieGoal * 0.30) / 4);
   const dailyFatGoal = Math.round((dailyCalorieGoal * 0.25) / 9);
 
-  const weeklyPlan = [
-    { day: 'Monday', meals: { breakfast: 'Oatmeal with berries', lunch: 'Grilled chicken salad', dinner: 'Salmon with quinoa & asparagus' }},
-    { day: 'Tuesday', meals: { breakfast: 'Greek yogurt with nuts', lunch: 'Lentil soup', dinner: 'Turkey meatballs with zucchini noodles' }},
-    { day: 'Wednesday', meals: { breakfast: 'Scrambled eggs with spinach', lunch: 'Leftover turkey meatballs', dinner: 'Beef stir-fry with brown rice' }},
-    { day: 'Thursday', meals: { breakfast: 'Protein smoothie', lunch: 'Tuna salad on whole wheat', dinner: 'Chicken & vegetable skewers' }},
-    { day: 'Friday', meals: { breakfast: 'Oatmeal with berries', lunch: 'Leftover beef stir-fry', dinner: 'Lean topping pizza on whole wheat' }},
-    { day: 'Saturday', meals: { breakfast: 'Whole grain pancakes', lunch: 'Quinoa bowl with black beans', dinner: 'Grilled steak with sweet potato' }},
-    { day: 'Sunday', meals: { breakfast: 'Scrambled eggs with spinach', lunch: 'Leftover steak', dinner: 'Roast chicken with vegetables' }},
-  ];
-
+  // Call the AI flow to generate a location-aware weekly plan
+  const planResponse = await generateWeeklyPlan({
+    goal: profile.goal,
+    country: profile.country,
+    state: profile.state,
+    disorders: profile.disorders || 'None',
+    dailyCalorieGoal,
+  });
 
   return {
     dailyCalorieGoal,
     dailyProteinGoal,
     dailyCarbsGoal,
     dailyFatGoal,
-    weeklyPlan,
+    weeklyPlan: planResponse.weeklyPlan,
   };
 };

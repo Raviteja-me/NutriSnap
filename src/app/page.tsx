@@ -7,14 +7,16 @@ import { Dashboard } from '@/components/dashboard';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { UserProfile, DietPlan, DailyLog, LoggedItem } from '@/lib/types';
 import { generateDietPlan } from '@/lib/plan-generator';
+import { useToast } from '@/hooks/use-toast';
 
-type AppStatus = 'loading' | 'needs_profile' | 'ready';
+type AppStatus = 'loading' | 'needs_profile' | 'generating_plan' | 'ready';
 
 const Home: FC = () => {
   const [status, setStatus] = useState<AppStatus>('loading');
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutrisnap-user-profile', null);
   const [plan, setPlan] = useLocalStorage<DietPlan | null>('nutrisnap-diet-plan', null);
   const [log, setLog] = useLocalStorage<Record<string, DailyLog>>('nutrisnap-food-log', {});
+  const { toast } = useToast();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -24,11 +26,24 @@ const Home: FC = () => {
     return () => clearTimeout(timer);
   }, [profile]);
 
-  const handleProfileSave = (data: UserProfile) => {
+  const handleProfileSave = async (data: UserProfile) => {
     setProfile(data);
-    const newPlan = generateDietPlan(data);
-    setPlan(newPlan);
-    setStatus('ready');
+    setStatus('generating_plan');
+    try {
+      const newPlan = await generateDietPlan(data);
+      setPlan(newPlan);
+      setStatus('ready');
+    } catch (error) {
+        console.error("Failed to generate diet plan:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Plan Generation Failed',
+            description: 'Could not create your personalized diet plan. Please try again.',
+        });
+        // Reset to profile setup if plan generation fails
+        setProfile(null);
+        setStatus('needs_profile');
+    }
   };
 
   const handleLogout = () => {
@@ -64,7 +79,8 @@ const Home: FC = () => {
   const getMainComponent = () => {
     switch (status) {
       case 'loading':
-        return <SplashScreen />;
+      case 'generating_plan':
+        return <SplashScreen isGeneratingPlan={status === 'generating_plan'} />;
       case 'needs_profile':
         return <ProfileSetup onSave={handleProfileSave} />;
       case 'ready':
