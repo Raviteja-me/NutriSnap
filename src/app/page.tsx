@@ -31,6 +31,13 @@ const Home: FC = () => {
     setStatus('ready');
   };
 
+  const handleLogout = () => {
+    setProfile(null);
+    setPlan(null);
+    setLog({});
+    setStatus('needs_profile');
+  };
+
   const today = new Date().toISOString().split('T')[0];
   const todayLog = log[today] || { date: today, meals: { breakfast: { items: [] }, lunch: { items: [] }, dinner: { items: [] } } };
 
@@ -62,7 +69,7 @@ const Home: FC = () => {
         return <ProfileSetup onSave={handleProfileSave} />;
       case 'ready':
         if (profile && plan) {
-          return <Dashboard profile={profile} plan={plan} log={todayLog} onLogItem={handleLogItem} />;
+          return <Dashboard profile={profile} plan={plan} log={todayLog} onLogItem={handleLogItem} onLogout={handleLogout} />;
         }
         // If profile/plan is missing, reset
         setStatus('needs_profile');

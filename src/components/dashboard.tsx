@@ -1,19 +1,22 @@
 'use client';
 import type { FC } from 'react';
-import { User, Target, BookOpen } from 'lucide-react';
+import { User, Target, BookOpen, LogOut } from 'lucide-react';
 import type { UserProfile, DietPlan, DailyLog, LoggedItem } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FoodLogCard } from './food-log-card';
 import { PlanView } from './plan-view';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from './ui/button';
 
 interface DashboardProps {
   profile: UserProfile;
   plan: DietPlan;
   log: DailyLog;
   onLogItem: (mealType: 'breakfast' | 'lunch' | 'dinner', item: LoggedItem) => void;
+  onLogout: () => void;
 }
 
-export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem }) => {
+export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem, onLogout }) => {
   return (
     <div className="w-full h-full flex flex-col bg-card animate-fade-in">
       <header className="p-4 border-b flex-shrink-0">
@@ -22,9 +25,19 @@ export const Dashboard: FC<DashboardProps> = ({ profile, plan, log, onLogItem })
             <h1 className="text-xl font-bold font-headline">Hello, {profile.name}!</h1>
             <p className="text-sm text-muted-foreground capitalize">Goal: {profile.goal} Weight</p>
           </div>
-          <div className="p-2 rounded-full bg-primary/10 text-primary">
-            <User className="w-6 h-6" />
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="p-2 rounded-full bg-primary/10 text-primary h-auto">
+                <User className="w-6 h-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       
