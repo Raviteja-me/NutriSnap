@@ -68,6 +68,6 @@ export const generateDietPlan = async (profile: UserProfile): Promise<DietPlan> 
     dailyCarbsGoal,
     dailyFatGoal,
     weeklyPlan: mealPlanResponse.weeklyPlan,
-    yogaPlan: yogaPlanResponse,
+    yogaPlan: yogaPlanResponse.yogaPlan,
   };
 };
