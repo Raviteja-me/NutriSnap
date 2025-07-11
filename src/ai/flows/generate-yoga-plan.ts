@@ -14,6 +14,7 @@ import { z } from 'zod';
 const GenerateYogaPlanInputSchema = z.object({
     goal: z.string().describe("The user's primary goal (e.g., lose weight, increase flexibility, reduce stress)."),
     experienceLevel: z.string().describe("The user's experience level with yoga (e.g., beginner, intermediate, advanced)."),
+    apiKey: z.string().optional().describe('Optional Google AI API key.'),
 });
 export type GenerateYogaPlanInput = z.infer<typeof GenerateYogaPlanInputSchema>;
 
@@ -61,7 +62,9 @@ const generateYogaPlanFlow = ai.defineFlow(
     outputSchema: GenerateYogaPlanOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await prompt(input, {
+        apiKey: input.apiKey,
+      });
     return output!;
   }
 );

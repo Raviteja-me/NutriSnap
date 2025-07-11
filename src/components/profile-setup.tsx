@@ -1,9 +1,10 @@
 'use client';
 
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Settings, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { UserProfile } from '@/lib/types';
 import { Logo } from './logo';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -26,9 +29,60 @@ const profileSchema = z.object({
 
 interface ProfileSetupProps {
   onSave: (data: UserProfile) => void;
+  apiKey: string | null;
+  setApiKey: (key: string | null) => void;
 }
 
-export const ProfileSetup: FC<ProfileSetupProps> = ({ onSave }) => {
+const ApiKeyDialog: FC<{apiKey: string | null, setApiKey: (key: string | null) => void}> = ({apiKey, setApiKey}) => {
+  const [keyInput, setKeyInput] = useState(apiKey || '');
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleSave = () => {
+    setApiKey(keyInput);
+    setIsOpen(false);
+    toast({
+      title: "API Key Saved",
+      description: "Your Google Gemini API key has been securely saved in your browser.",
+    })
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+          <Settings className="h-5 w-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>API Key Settings</DialogTitle>
+          <DialogDescription>
+            Optionally, provide your own Google Gemini API key. Your key is stored securely in your browser's local storage and never sent anywhere else.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-2">
+            <Label htmlFor="apiKey" className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4" />
+                <span>Google Gemini API Key</span>
+            </Label>
+            <Input 
+                id="apiKey"
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="Enter your API key"
+            />
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave}>Save Key</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export const ProfileSetup: FC<ProfileSetupProps> = ({ onSave, apiKey, setApiKey }) => {
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -45,8 +99,9 @@ export const ProfileSetup: FC<ProfileSetupProps> = ({ onSave }) => {
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-background p-4 animate-fade-in overflow-y-auto">
-       <div className="w-full text-center mb-6 pt-8">
+       <div className="w-full text-center mb-6 pt-8 flex items-center justify-center gap-2">
         <Logo />
+        <ApiKeyDialog apiKey={apiKey} setApiKey={setApiKey}/>
       </div>
       <Card className="w-full">
         <CardHeader>

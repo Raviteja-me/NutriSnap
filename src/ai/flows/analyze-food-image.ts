@@ -17,6 +17,7 @@ const AnalyzeFoodImageInputSchema = z.object({
     .describe(
       "A photo of the meal, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  apiKey: z.string().optional().describe('Optional Google AI API key.'),
 });
 export type AnalyzeFoodImageInput = z.infer<typeof AnalyzeFoodImageInputSchema>;
 
@@ -55,8 +56,10 @@ const analyzeFoodImageFlow = ai.defineFlow(
     inputSchema: AnalyzeFoodImageInputSchema,
     outputSchema: AnalyzeFoodImageOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const {output} = await prompt(input, {
+        apiKey: input.apiKey,
+      });
     return output!;
   }
 );

@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Progress } from './ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface FoodLogCardProps {
   mealType: 'breakfast' | 'lunch' | 'dinner';
@@ -68,6 +69,7 @@ const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: 
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [apiKey] = useLocalStorage<string | null>('gemini-api-key', null);
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,7 +83,7 @@ const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: 
     reader.onload = async () => {
       try {
         const photoDataUri = reader.result as string;
-        const result = await analyzeFoodImage({ photoDataUri });
+        const result = await analyzeFoodImage({ photoDataUri, apiKey: apiKey ?? undefined });
         const parsedNutrition = parseNutritionalInfo(result.nutritionalInformation);
         
         const newItem: LoggedItem = {
@@ -95,7 +97,7 @@ const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: 
 
       } catch (error) {
         console.error('Error analyzing food image:', error);
-        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the food image.' });
+        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze image. Check your API key in settings.' });
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +114,7 @@ const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: 
     setIsOpen(false);
     
     try {
-        const result = await analyzeFoodImage({ photoDataUri: `data:text/plain;base64,${btoa(`Analyze the nutritional content of: ${textInput}`)}` });
+        const result = await analyzeFoodImage({ photoDataUri: `data:text/plain;base64,${btoa(`Analyze the nutritional content of: ${textInput}`)}`, apiKey: apiKey ?? undefined });
         const parsedNutrition = parseNutritionalInfo(result.nutritionalInformation);
         const newItem: LoggedItem = {
           id: Date.now().toString(),
@@ -124,7 +126,7 @@ const AddFoodDialog: FC<{mealType: 'breakfast' | 'lunch' | 'dinner', onLogItem: 
         setTextInput('');
     } catch(error) {
         console.error('Error analyzing text input:', error);
-        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the typed entry.' });
+        toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze entry. Check your API key in settings.' });
     } finally {
         setIsLoading(false);
     }

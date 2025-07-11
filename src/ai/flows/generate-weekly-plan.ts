@@ -16,7 +16,8 @@ const GenerateWeeklyPlanInputSchema = z.object({
     country: z.string().describe("The user's country for localizing meal suggestions."),
     state: z.string().describe("The user's state or region for localizing meal suggestions."),
     disorders: z.string().optional().describe("Any health conditions or dietary restrictions."),
-    dailyCalorieGoal: z.number().describe("The user's target daily calorie intake.")
+    dailyCalorieGoal: z.number().describe("The user's target daily calorie intake."),
+    apiKey: z.string().optional().describe('Optional Google AI API key.'),
 });
 export type GenerateWeeklyPlanInput = z.infer<typeof GenerateWeeklyPlanInputSchema>;
 
@@ -65,7 +66,9 @@ const generateWeeklyPlanFlow = ai.defineFlow(
     outputSchema: GenerateWeeklyPlanOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await prompt(input, {
+        apiKey: input.apiKey,
+      });
     return output!;
   }
 );

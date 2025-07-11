@@ -16,6 +16,7 @@ const Home: FC = () => {
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutrisnap-user-profile', null);
   const [plan, setPlan] = useLocalStorage<DietPlan | null>('nutrisnap-diet-plan', null);
   const [log, setLog] = useLocalStorage<Record<string, DailyLog>>('nutrisnap-food-log', {});
+  const [apiKey, setApiKey] = useLocalStorage<string | null>('gemini-api-key', null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,7 +25,7 @@ const Home: FC = () => {
         setStatus('ready');
         // Check if yoga plan needs to be generated
         if (profile && plan && !plan.yogaPlan) {
-          addYogaPlanToDietPlan(profile, plan).then(newPlan => {
+          addYogaPlanToDietPlan(profile, plan, apiKey).then(newPlan => {
             setPlan(newPlan);
           }).catch(error => {
             console.error("Failed to add yoga plan:", error);
@@ -45,12 +46,12 @@ const Home: FC = () => {
     setStatus('generating_plan');
     try {
       // Step 1: Generate the initial plan with meals and nutrition goals.
-      const initialPlan = await generateInitialDietPlan(data);
+      const initialPlan = await generateInitialDietPlan(data, apiKey);
       setPlan(initialPlan);
       setStatus('ready'); // Go to dashboard immediately
 
       // Step 2: Generate and add the yoga plan in the background.
-      const finalPlan = await addYogaPlanToDietPlan(data, initialPlan);
+      const finalPlan = await addYogaPlanToDietPlan(data, initialPlan, apiKey);
       setPlan(finalPlan); // Update the plan with yoga data.
 
     } catch (error) {
@@ -58,7 +59,7 @@ const Home: FC = () => {
         toast({
             variant: 'destructive',
             title: 'Plan Generation Failed',
-            description: 'Could not create your personalized diet plan. Please try again.',
+            description: 'Could not create your plan. Please check your API key in the settings or try again.',
         });
         // Reset to profile setup if plan generation fails
         setProfile(null);
@@ -100,7 +101,7 @@ const Home: FC = () => {
       case 'generating_plan':
         return <SplashScreen isGeneratingPlan={status === 'generating_plan'} />;
       case 'needs_profile':
-        return <ProfileSetup onSave={handleProfileSave} />;
+        return <ProfileSetup onSave={handleProfileSave} apiKey={apiKey} setApiKey={setApiKey}/>;
       case 'ready':
         if (profile && plan) {
           return <Dashboard profile={profile} plan={plan} log={log} onLogItem={handleLogItem} onLogout={handleLogout} />;
@@ -109,7 +110,7 @@ const Home: FC = () => {
         setProfile(null);
         setPlan(null);
         setStatus('needs_profile');
-        return <ProfileSetup onSave={handleProfileSave} />;
+        return <ProfileSetup onSave={handleProfileSave} apiKey={apiKey} setApiKey={setApiKey} />;
       default:
         return <SplashScreen />;
     }

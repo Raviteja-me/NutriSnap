@@ -28,7 +28,7 @@ const getYogaGoal = (goal: UserProfile['goal']): string => {
  * Generates the initial diet plan containing nutritional goals and a weekly meal plan.
  * The yoga plan is intentionally omitted for faster initial load.
  */
-export const generateInitialDietPlan = async (profile: UserProfile): Promise<DietPlan> => {
+export const generateInitialDietPlan = async (profile: UserProfile, apiKey: string | null): Promise<DietPlan> => {
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr);
 
@@ -56,6 +56,7 @@ export const generateInitialDietPlan = async (profile: UserProfile): Promise<Die
     state: profile.state,
     disorders: profile.disorders || 'None',
     dailyCalorieGoal,
+    apiKey: apiKey ?? undefined,
   });
 
   return {
@@ -72,10 +73,11 @@ export const generateInitialDietPlan = async (profile: UserProfile): Promise<Die
  * Generates a yoga plan and adds it to an existing diet plan.
  * This can be called in the background after the initial plan is displayed.
  */
-export const addYogaPlanToDietPlan = async (profile: UserProfile, existingPlan: DietPlan): Promise<DietPlan> => {
+export const addYogaPlanToDietPlan = async (profile: UserProfile, existingPlan: DietPlan, apiKey: string | null): Promise<DietPlan> => {
     const yogaPlanResponse = await generateYogaPlan({
       goal: getYogaGoal(profile.goal),
       experienceLevel: 'beginner', // Assuming beginner for now
+      apiKey: apiKey ?? undefined,
     });
 
     return {
