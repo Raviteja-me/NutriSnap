@@ -2,8 +2,9 @@ import type { FC } from 'react';
 import type { DietPlan, UserProfile, YogaPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { CheckCircle2, Flame, Beef, Wheat, Salad, Dumbbell, BrainCircuit, Calendar, Clock } from 'lucide-react';
+import { CheckCircle2, Flame, Beef, Wheat, Salad, Dumbbell, BrainCircuit } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Skeleton } from './ui/skeleton';
 
 
 interface PlanViewProps {
@@ -21,7 +22,7 @@ const StatCard: FC<{icon: React.ReactNode, value: string, label: string, color: 
     </div>
 )
 
-const YogaPlanView: FC<{plan: YogaPlan}> = ({plan}) => (
+const YogaPlanView: FC<{plan: {yogaPlan: YogaPlan[]}}> = ({plan}) => (
     <Accordion type="single" collapsible defaultValue="Monday">
         {plan.yogaPlan.map((dayPlan) => (
             <AccordionItem value={dayPlan.day} key={dayPlan.day}>
@@ -104,10 +105,24 @@ export const PlanView: FC<PlanViewProps> = ({ plan, profile }) => {
                     <MealPlanView plan={plan} />
                 </TabsContent>
                 <TabsContent value="yoga">
-                    {plan.yogaPlan ? (
+                    {plan.yogaPlan && plan.yogaPlan.yogaPlan ? (
                         <YogaPlanView plan={plan.yogaPlan} />
                     ) : (
-                        <p className='text-center text-muted-foreground p-4'>Your yoga plan is being generated...</p>
+                        <div className="space-y-4">
+                          <div className='flex items-center justify-between'>
+                            <Skeleton className='h-8 w-1/3' />
+                            <Skeleton className='h-4 w-4' />
+                          </div>
+                           <div className='flex items-center justify-between'>
+                            <Skeleton className='h-8 w-1/3' />
+                            <Skeleton className='h-4 w-4' />
+                          </div>
+                           <div className='flex items-center justify-between'>
+                            <Skeleton className='h-8 w-1/3' />
+                            <Skeleton className='h-4 w-4' />
+                          </div>
+                          <p className='text-center text-sm text-muted-foreground animate-pulse pt-4'>Your yoga plan is being generated...</p>
+                        </div>
                     )}
                 </TabsContent>
             </Tabs>

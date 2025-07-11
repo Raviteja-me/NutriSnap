@@ -5,7 +5,7 @@ export interface UserProfile {
   weight: number;
   country: string;
   state: string;
-  disorders: string;
+  disorders?: string;
   goal: 'lose' | 'maintain' | 'gain';
 }
 
@@ -41,18 +41,16 @@ export interface DailyLog {
 }
 
 export interface YogaPlan {
-    yogaPlan: {
-        day: string;
-        focus: string;
-        asanas: {
-            name: string;
-            duration: string;
-        }[];
-        meditation: {
-            type: string;
-            duration: string;
-        }
+    day: string;
+    focus: string;
+    asanas: {
+        name: string;
+        duration: string;
     }[];
+    meditation: {
+        type: string;
+        duration: string;
+    }
 }
 
 export interface DietPlan {
@@ -68,5 +66,7 @@ export interface DietPlan {
       dinner: string;
     };
   }[];
-  yogaPlan?: YogaPlan;
+  yogaPlan: {
+    yogaPlan: YogaPlan[];
+  };
 }
